@@ -50,7 +50,8 @@ class OptimizedTelegramScraper:
         self.state = self.load_state()
         self.client = None
         self.continuous_scraping_active = False
-        self.max_concurrent_downloads = 5
+        # Load max_concurrent_downloads from state, fallback to 5 if not present
+        self.max_concurrent_downloads = self.state.get('max_concurrent_downloads', 5)
         self.batch_size = 100
         self.state_save_interval = 50
         self.db_connections = {}
@@ -59,7 +60,11 @@ class OptimizedTelegramScraper:
         if os.path.exists(self.STATE_FILE):
             try:
                 with open(self.STATE_FILE, 'r') as f:
-                    return json.load(f)
+                    state = json.load(f)
+                    # Ensure max_concurrent_downloads is present
+                    if 'max_concurrent_downloads' not in state:
+                        state['max_concurrent_downloads'] = 5
+                    return state
             except:
                 pass
         return {
@@ -67,9 +72,12 @@ class OptimizedTelegramScraper:
             'api_hash': None,
             'channels': {},
             'scrape_media': True,
+            'max_concurrent_downloads': 5,
         }
 
     def save_state(self):
+        # Sync max_concurrent_downloads to state before saving
+        self.state['max_concurrent_downloads'] = self.max_concurrent_downloads
         try:
             with open(self.STATE_FILE, 'w') as f:
                 json.dump(self.state, f, indent=2)
