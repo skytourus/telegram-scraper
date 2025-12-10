@@ -572,14 +572,6 @@ class OptimizedTelegramScraper:
         except SessionPasswordNeededError:
             password = input("Two-factor authentication enabled. Enter your password: ")
             await self.client.sign_in(password=password)
-            print("\n✅ Successfully logged in with 2FA!")
-            return True
-        except Exception as e:
-            print(f"\n❌ Phone authentication failed: {e}")
-            return False
-
-    async def initialize_client(self):
-        if not all([self.state.get('api_id'), self.state.get('api_hash')]):
             print("\n=== API Configuration Required ===")
             print("You need to provide API credentials from https://my.telegram.org")
             try:
