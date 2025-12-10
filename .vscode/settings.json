@@ -1,0 +1,10 @@
+{
+    "editor.definitionLinkOpensInPeek": true,
+    "search.seedWithNearestWord": true,
+    "search.seedOnFocus": true,
+    "testing.automaticallyOpenPeekView": "failureInVisibleDocument",
+    "editor.stablePeek": true,
+    "dart.projectSearchDepth": 5545,
+    "java.search.scope": "all",
+    "CodeGPT.apiKey": "Docker"
+}

@@ -572,93 +572,50 @@ class OptimizedTelegramScraper:
         except SessionPasswordNeededError:
             password = input("Two-factor authentication enabled. Enter your password: ")
             await self.client.sign_in(password=password)
-            print("\n=== API Configuration Required ===")
-            print("You need to provide API credentials from https://my.telegram.org")
-            try:
-                self.state['api_id'] = int(input("Enter your API ID: "))
-                self.state['api_hash'] = input("Enter your API Hash: ")
-                self.save_state()
-            except ValueError:
-                print("Invalid API ID. Must be a number.")
-                return False
+            print("\n✅ Successfully logged in with 2FA!")
+            return True
+        except Exception as e:
+            print(f"\n❌ Phone number authentication failed: {e}")
+            return False
 
-        self.client = TelegramClient('session', self.state['api_id'], self.state['api_hash'])
+    async def initialize_client(self):
+        if self.client:
+            return True
         
         try:
             await self.client.connect()
+            
+            if not await self.client.is_user_authorized():
+                print("User is not authorized. Please log in.")
+                return False
+            
+            return True
         except Exception as e:
             print(f"Failed to connect: {e}")
             return False
-        
+
+    async def setup_telethon_client(self):
+        # Prompt for API credentials if missing
+        if not self.state.get('api_id') or not self.state.get('api_hash'):
+            print("Telegram API credentials required.")
+            self.state['api_id'] = input("Enter your Telegram API ID: ").strip()
+            self.state['api_hash'] = input("Enter your Telegram API Hash: ").strip()
+            self.save_state()
+        session_name = "telegram_scraper_session"
+        self.client = TelegramClient(session_name, int(self.state['api_id']), self.state['api_hash'])
+        await self.client.connect()
         if not await self.client.is_user_authorized():
-            print("\n=== Choose Authentication Method ===")
-            print("[1] QR Code (Recommended - No phone number needed)")
-            print("[2] Phone Number (Traditional method)")
-            
-            while True:
-                choice = input("Enter your choice (1 or 2): ").strip()
-                if choice in ['1', '2']:
-                    break
-                print("Please enter 1 or 2")
-            
-            success = await self.qr_code_auth() if choice == '1' else await self.phone_auth()
-                
+            print("\nChoose authentication method:")
+            print("[1] QR Code (recommended)")
+            print("[2] Phone number")
+            method = input("Enter 1 or 2: ").strip()
+            if method == '1':
+                success = await self.qr_code_auth()
+            else:
+                success = await self.phone_auth()
             if not success:
-                print("Authentication failed. Please try again.")
-                await self.client.disconnect()
-                return False
-        else:
-            print("✅ Already authenticated!")
-            
-        return True
-
-    def parse_channel_selection(self, choice):
-        channels_list = list(self.state['channels'].keys())
-        selected_channels = []
-        
-        if choice.lower() == 'all':
-            return channels_list
-        
-        for selection in [x.strip() for x in choice.split(',')]:
-            try:
-                if selection.startswith('-'):
-                    if selection in self.state['channels']:
-                        selected_channels.append(selection)
-                    else:
-                        print(f"Channel ID {selection} not found in your channels")
-                else:
-                    num = int(selection)
-                    if 1 <= num <= len(channels_list):
-                        selected_channels.append(channels_list[num - 1])
-                    else:
-                        print(f"Invalid channel number: {num}. Valid range: 1-{len(channels_list)}")
-            except ValueError:
-                print(f"Invalid input: {selection}. Use numbers (1,2,3) or full IDs (-100123...)")
-        
-        return selected_channels
-
-    async def scrape_specific_channels(self):
-        if not self.state['channels']:
-            print("No channels available. Use [L] to add channels first")
-            return
-
-        await self.view_channels()
-        print("\n📥 Scrape Options:")
-        print("• Single: 1 or -1001234567890")
-        print("• Multiple: 1,3,5 or mix formats")
-        print("• All channels: all")
-        
-        choice = input("\nEnter selection: ").strip()
-        selected_channels = self.parse_channel_selection(choice)
-        
-        if selected_channels:
-            print(f"\n🚀 Starting scrape of {len(selected_channels)} channel(s)...")
-            for i, channel in enumerate(selected_channels, 1):
-                print(f"\n[{i}/{len(selected_channels)}] Scraping: {channel}")
-                await self.scrape_channel(channel, self.state['channels'][channel])
-            print(f"\n✅ Completed scraping {len(selected_channels)} channel(s)!")
-        else:
-            print("❌ No valid channels selected")
+                print("Authentication failed. Exiting.")
+                sys.exit(1)
 
     async def manage_channels(self):
         while True:
@@ -831,6 +788,7 @@ class OptimizedTelegramScraper:
 
     async def run(self):
         display_ascii_art()
+        await self.setup_telethon_client()
         if await self.initialize_client():
             try:
                 await self.manage_channels()

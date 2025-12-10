@@ -195,3 +195,22 @@ This tool is for educational purposes only. Make sure to:
 - Obtain necessary permissions before scraping
 - Use responsibly and ethically
 - Comply with data protection regulations
+
+## Troubleshooting
+
+### VS Code: `command 'python-envs.runAsTask' not found`
+
+If you see this error in Visual Studio Code:
+
+```
+command 'python-envs.runAsTask' not found
+```
+
+**Solution:**
+- Make sure you have the official Python extension installed (`ms-python.python`).
+- Reload VS Code after installing or updating extensions.
+- If the error persists, disable/uninstall any conflicting extensions (e.g., old Python environment managers).
+- You can always run the scraper from the terminal:
+  ```
+  python telegram-scraper.py
+  ```
